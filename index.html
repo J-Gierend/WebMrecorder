@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Microphone Recorder</title>
+</head>
+<body>
+  <button id="recordButton">Record</button>
+  <button id="stopButton" disabled>Stop</button>
+  <div id="log"></div>
+
+  <script>
+    // Get the audio context
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioContext = new AudioContext();
+
+    // Get the media stream from the user's microphone
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function(stream) {
+        // Create a media stream source from the stream
+        const source = audioContext.createMediaStreamSource(stream);
+
+        // Create a recorder node and connect it to the source
+        const recorder = new MediaRecorder(source);
+
+        // Create an array to store the chunks of audio data
+        const chunks = [];
+
+        // When the recorder starts recording, log it and enable the stop button
+        recorder.addEventListener('start', function() {
+          console.log('Recording started...');
+          document.getElementById('stopButton').disabled = false;
+        });
+
+        // When the recorder stops recording, log it and disable the stop button
+        recorder.addEventListener('stop', function() {
+          console.log('Recording stopped.');
+          document.getElementById('stopButton').disabled = true;
+
+          // Create a blob from the chunks of audio data and save it as a WebM file
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          document.body.appendChild(a);
+          a.style = 'display: none';
+          a.href = url;
+          a.download = 'recording.webm';
+          a.click();
+          window.URL.revokeObjectURL(url);
+        });
+
+        // When the recorder receives a data available event, push the data to the chunks array
+        recorder.addEventListener('dataavailable', function(event) {
+          console.log('Data available...');
+          chunks.push(event.data);
+        });
+
+        // Add a click event listener to the record button to start recording
+        document.getElementById('recordButton').addEventListener('click', function() {
+          console.log('Recording...');
+          recorder.start();
+          document.getElementById('recordButton').disabled = true;
+        });
+
+        // Add a click event listener to the stop button to stop recording
+        document.getElementById('stopButton').addEventListener('click', function() {
+          console.log('Stopping...');
+          recorder.stop();
+          document.getElementById('recordButton').disabled = false;
+        });
+      })
+      .catch(function(error) {
+        console.error('Error:', error);
+      });
+  </script>
+</body>
+</html>
